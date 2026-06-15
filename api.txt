@@ -1,0 +1,80 @@
+AUTH:
+  POST   /api/v1/auth/login/
+  POST   /api/v1/auth/refresh/
+
+CORE:
+  CRUD   /api/v1/branches/
+  CRUD   /api/v1/users/
+  GET    /api/v1/users/me/
+  POST   /api/v1/users/change_password/
+  CRUD   /api/v1/exchange-rates/
+  CRUD   /api/v1/settings/
+  CRUD   /api/v1/notifications/
+  GET    /api/v1/audit-log/
+
+ACADEMICS:
+  CRUD   /api/v1/programmes/
+  CRUD   /api/v1/academic-years/
+  POST   /api/v1/academic-years/{id}/close_year/
+  POST   /api/v1/academic-years/{id}/generate_periods/
+  CRUD   /api/v1/fiscal-periods/
+  POST   /api/v1/fiscal-periods/{id}/close_period/
+  CRUD   /api/v1/academic-records/
+  CRUD   /api/v1/attendance/
+  POST   /api/v1/attendance/bulk_create/
+
+STUDENTS:
+  CRUD   /api/v1/students/
+  GET    /api/v1/students/{id}/ledger/
+  GET    /api/v1/students/{id}/dues/
+  GET    /api/v1/students/overdue/
+  GET    /api/v1/students/summary/
+  CRUD   /api/v1/documents/
+  CRUD   /api/v1/fee-setups/
+  POST   /api/v1/fee-setups/{id}/generate_dues/
+  CRUD   /api/v1/dues/
+  GET    /api/v1/dues/upcoming/
+  CRUD   /api/v1/discounts/
+
+PARTNERS:
+  CRUD   /api/v1/partners/
+  GET    /api/v1/partners/{id}/students/
+  GET    /api/v1/partners/{id}/commissions/
+  CRUD   /api/v1/universities/
+  GET    /api/v1/universities/{id}/students/
+
+ACCOUNTING:
+  CRUD   /api/v1/coa/
+  GET    /api/v1/coa/tree/
+  GET    /api/v1/coa/balances/
+  CRUD   /api/v1/fee-heads/
+  CRUD   /api/v1/payments/
+  POST   /api/v1/payments/{id}/approve/
+  POST   /api/v1/payments/{id}/reject/
+  GET    /api/v1/payments/pending/
+  CRUD   /api/v1/vouchers/
+  POST   /api/v1/vouchers/{id}/approve/
+  GET    /api/v1/main-ledger/
+  GET    /api/v1/main-ledger/trial_balance/
+  GET    /api/v1/student-ledger/
+  CRUD   /api/v1/petty-cash/
+  CRUD   /api/v1/late-fees/
+  POST   /api/v1/late-fees/calculate/
+  GET    /api/v1/snapshots/
+
+PROGRESSION:
+  CRUD   /api/v1/progression/
+  POST   /api/v1/progression/{id}/update_status/
+  POST   /api/v1/progression/{id}/trigger_commission/
+  CRUD   /api/v1/university-commissions/
+  POST   /api/v1/university-commissions/{id}/mark_received/
+  CRUD   /api/v1/partner-commissions/
+  POST   /api/v1/partner-commissions/{id}/approve/
+  CRUD   /api/v1/partner-payments/
+
+REPORTS:
+  GET    /api/v1/reports/dashboard/
+  GET    /api/v1/reports/income-statement/
+  GET    /api/v1/reports/balance-sheet/
+  GET    /api/v1/reports/cash-flow/
+  GET    /api/v1/reports/progression/
