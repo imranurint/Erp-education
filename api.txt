@@ -78,3 +78,23 @@ REPORTS:
   GET    /api/v1/reports/balance-sheet/
   GET    /api/v1/reports/cash-flow/
   GET    /api/v1/reports/progression/
+
+
+PDF DOWNLOADS:
+  GET  /api/v1/documents/receipt/{payment_id}/               ← receipt PDF
+  GET  /api/v1/documents/payslip/{payroll_item_id}/          ← payslip PDF
+  POST /api/v1/documents/income-statement/                   ← P&L PDF
+  POST /api/v1/documents/balance-sheet/                      ← balance sheet PDF
+  GET  /api/v1/documents/student-statement/{student_id}/     ← student statement
+  GET  /api/v1/documents/invoice/{student_id}/               ← unpaid invoice
+
+EMAIL & TASK MANAGEMENT:
+  GET  /api/v1/email-queue/                                  ← view queued emails
+  GET  /api/v1/generated-documents/                          ← all generated PDFs
+  GET  /api/v1/task-logs/                                    ← scheduled task history
+
+SCHEDULED (Celery Beat — runs automatically):
+  Daily 1:00 AM      → calculate late fees on overdue dues
+  Monday 9:00 AM     → send overdue reminders to students
+  Every 5 minutes    → process and send email queue
+  1st of month 2 AM  → generate financial snapshot
