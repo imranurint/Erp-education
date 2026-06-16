@@ -143,6 +143,8 @@ class PaymentViewSet(BranchIsolationMixin, viewsets.ModelViewSet):
             ])
 
         payment.refresh_from_db()
+        from apps.notifications.tasks import send_payment_confirmation
+        send_payment_confirmation.delay(payment.pk)
         return Response(PaymentSerializer(payment).data)
 
     @action(detail=True, methods=['post'])
