@@ -19,7 +19,18 @@ from apps.progression.models import (
     ProgressionRecord, UniversityCommission, PartnerCommission, PartnerPayment
 )
 from django.db import models
-
+from apps.hrm.models import (
+    Department, Designation, Employee, SalaryStructure,
+    LeaveType, LeaveBalance, TeacherAssignment,
+    CounselorAssignment, StudentMeeting
+)
+from apps.hrm.models import (
+            Department as Dept, Employee as Emp,
+            TeacherAssignment as TA, CounselorAssignment as CA,
+            StudentMeeting as SM
+        )
+from apps.notifications.models import EmailQueue, GeneratedDocument
+from datetime import datetime
 
 class Command(BaseCommand):
     help = 'Seed all tables with realistic demo data using Django ORM'
@@ -903,7 +914,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('  Progression & commissions done'))
 
         # ─────────────────────────────────────────────────────
-        # 19. Update student financial totals
+        # 19.1 Update student financial totals
         # ─────────────────────────────────────────────────────
         self.stdout.write('  [18/18] Updating financial totals...')
         for student in Student.objects.all():
@@ -918,6 +929,299 @@ class Command(BaseCommand):
             student.total_due = agg['due'] or 0
             student.save(update_fields=['total_fee', 'total_paid', 'total_due'])
 
+        
+
+
+
+
+                # ─────────────────────────────────────────────────────
+        # 19.2 HRM — DEPARTMENTS
+        # ─────────────────────────────────────────────────────
+        self.stdout.write('  [19/22] Departments...')
+        dept_data = [
+            ('Academic', 'Teaching and academic staff', None, None),
+            ('Administration', 'Administrative operations', admin, None),
+            ('Finance & Accounts', 'Financial management and fee collection', None, None),
+            ('Marketing & Admissions', 'Student recruitment and marketing', None, None),
+            ('Student Services', 'Student support, counseling and guidance', None, None),
+            ('IT & Systems', 'Technology support and systems', None, None),
+        ]
+        dept_objs = {}
+        for dname, desc, head, br in dept_data:
+            obj, _ = Department.objects.get_or_create(
+                department_name=dname,
+                defaults={'description': desc, 'head_user': head, 'branch': br}
+            )
+            dept_objs[dname] = obj
+        self.stdout.write(self.style.SUCCESS(f'  {len(dept_objs)} departments'))
+
+        # ─────────────────────────────────────────────────────
+        # 20. HRM — DESIGNATIONS
+        # ─────────────────────────────────────────────────────
+        self.stdout.write('  [20/22] Designations...')
+        desig_data = [
+            ('Centre Director', 'Administration', 1),
+            ('Branch Manager', 'Administration', 2),
+            ('Senior Lecturer', 'Academic', 3),
+            ('Lecturer', 'Academic', 4),
+            ('Assistant Lecturer', 'Academic', 5),
+            ('Senior Counselor', 'Student Services', 3),
+            ('Student Counselor', 'Student Services', 4),
+            ('Accountant', 'Finance & Accounts', 4),
+            ('Finance Officer', 'Finance & Accounts', 5),
+            ('Marketing Manager', 'Marketing & Admissions', 3),
+            ('Marketing Executive', 'Marketing & Admissions', 4),
+            ('Fee Collector', 'Finance & Accounts', 5),
+            ('Administrative Officer', 'Administration', 4),
+            ('Office Assistant', 'Administration', 6),
+            ('IT Officer', 'IT & Systems', 4),
+        ]
+        desig_objs = {}
+        for dname, dept, level in desig_data:
+            obj, _ = Designation.objects.get_or_create(
+                designation_name=dname,
+                defaults={'department': dept_objs[dept], 'level': level}
+            )
+            desig_objs[dname] = obj
+        self.stdout.write(self.style.SUCCESS(f'  {len(desig_objs)} designations'))
+
+        # ─────────────────────────────────────────────────────
+        # 21. HRM — EMPLOYEES (linked to existing users)
+        # ─────────────────────────────────────────────────────
+        self.stdout.write('  [21/22] Employees & Salary...')
+        emp_data = [
+            # (email, code, dept, desig, emp_type, joining, qual, exp, spec, gender, dob, bank, acc)
+            ('amran@miepathways.com', 'MIE-EMP-001', 'Administration', 'Centre Director',
+             'Full-time', '2023-01-01', 'MBA', 10.0, 'Education Management',
+             'Male', '1985-03-15', 'Dutch-Bangla Bank', '1234567890'),
+            ('fatima@miepathways.com', 'MIE-EMP-002', 'Administration', 'Branch Manager',
+             'Full-time', '2023-06-01', 'MBA', 8.0, 'Branch Operations',
+             'Female', '1988-07-22', 'BRAC Bank', '2345678901'),
+            ('karim@miepathways.com', 'MIE-EMP-003', 'Finance & Accounts', 'Accountant',
+             'Full-time', '2023-06-01', 'B.Com, ACCA', 6.0, 'Financial Accounting',
+             'Male', '1990-11-10', 'Prime Bank', '3456789012'),
+            ('rafiq@miepathways.com', 'MIE-EMP-004', 'Finance & Accounts', 'Fee Collector',
+             'Full-time', '2024-01-15', 'HSC', 2.0, 'Fee Collection',
+             'Male', '1995-05-08', 'Dutch-Bangla Bank', '4567890123'),
+            ('nadia@miepathways.com', 'MIE-EMP-005', 'Student Services', 'Student Counselor',
+             'Full-time', '2024-03-01', 'M.Ed', 4.0, 'Student Counseling & Guidance',
+             'Female', '1992-09-14', 'BRAC Bank', '5678901234'),
+            ('zahir@miepathways.com', 'MIE-EMP-006', 'Administration', 'Branch Manager',
+             'Full-time', '2023-06-01', 'MBA', 7.0, 'Branch Operations',
+             'Male', '1987-01-30', 'Islami Bank', '6789012345'),
+            ('sumon@miepathways.com', 'MIE-EMP-007', 'Finance & Accounts', 'Accountant',
+             'Full-time', '2023-08-01', 'B.Com', 5.0, 'Financial Accounting',
+             'Male', '1991-04-25', 'Prime Bank', '7890123456'),
+            ('bablu@miepathways.com', 'MIE-EMP-008', 'Finance & Accounts', 'Fee Collector',
+             'Full-time', '2024-02-01', 'HSC', 1.5, 'Fee Collection',
+             'Male', '1996-12-08', 'Dutch-Bangla Bank', '8901234567'),
+        ]
+
+        salary_data = {
+            'MIE-EMP-001': (80000, 32000, 5000, 5000, 0, 0, 0, 122000, 8000, 5000, 13000, 109000),
+            'MIE-EMP-002': (55000, 22000, 4000, 4000, 0, 0, 0, 85000, 5500, 3000, 8500, 76500),
+            'MIE-EMP-003': (45000, 18000, 3000, 3000, 0, 0, 0, 69000, 4500, 2000, 6500, 62500),
+            'MIE-EMP-004': (22000, 8800, 2000, 2000, 0, 0, 0, 34800, 2200, 0, 2200, 32600),
+            'MIE-EMP-005': (40000, 16000, 3000, 3000, 0, 0, 0, 62000, 4000, 1500, 5500, 56500),
+            'MIE-EMP-006': (50000, 20000, 4000, 3000, 0, 0, 0, 77000, 5000, 2500, 7500, 69500),
+            'MIE-EMP-007': (42000, 16800, 3000, 2500, 0, 0, 0, 64300, 4200, 1800, 6000, 58300),
+            'MIE-EMP-008': (20000, 8000, 2000, 1500, 0, 0, 0, 31500, 2000, 0, 2000, 29500),
+        }
+
+        emp_objs = {}
+        for (email, code, dept, desig, etype, joining, qual, exp,
+             spec, gender, dob, bank, acc) in emp_data:
+            user = User.objects.get(email=email)
+            emp, _ = Employee.objects.get_or_create(
+                employee_code=code,
+                defaults={
+                    'user': user,
+                    'department': dept_objs[dept],
+                    'designation': desig_objs[desig],
+                    'employment_type': etype,
+                    'date_of_joining': joining,
+                    'qualification': qual,
+                    'experience_years': exp,
+                    'specialization': spec,
+                    'gender': gender,
+                    'date_of_birth': dob,
+                    'bank_name': bank,
+                    'bank_account_no': acc,
+                    'status': 'Active',
+                    'branch': user.branch,
+                }
+            )
+            emp_objs[code] = emp
+
+            # Salary structure
+            s = salary_data[code]
+            SalaryStructure.objects.get_or_create(
+                employee=emp, is_current=True,
+                defaults={
+                    'basic_salary': s[0], 'house_rent': s[1],
+                    'medical_allowance': s[2], 'transport_allowance': s[3],
+                    'food_allowance': s[4], 'mobile_allowance': s[5],
+                    'other_allowance': s[6], 'gross_salary': s[7],
+                    'provident_fund': s[8], 'tax_deduction': s[9],
+                    'total_deduction': s[10], 'net_salary': s[11],
+                    'effective_from': joining,
+                    'approved_by': admin,
+                    'branch': user.branch,
+                }
+            )
+
+        self.stdout.write(self.style.SUCCESS(
+            f'  {len(emp_objs)} employees, {len(emp_objs)} salary structures'
+        ))
+
+        # ─────────────────────────────────────────────────────
+        # 22. HRM — LEAVE TYPES & BALANCES
+        # ─────────────────────────────────────────────────────
+        self.stdout.write('  [22/22] Leaves, Assignments, Meetings...')
+        leave_types_data = [
+            ('Annual Leave', 14, True, True),
+            ('Sick Leave', 10, True, False),
+            ('Casual Leave', 7, True, False),
+            ('Maternity Leave', 112, True, False),
+            ('Paternity Leave', 7, True, False),
+            ('Unpaid Leave', 30, False, False),
+            ('Study Leave', 10, True, False),
+        ]
+        lt_objs = {}
+        for ltname, days, paid, carry in leave_types_data:
+            obj, _ = LeaveType.objects.get_or_create(
+                type_name=ltname,
+                defaults={
+                    'days_per_year': days, 'is_paid': paid, 'carry_forward': carry
+                }
+            )
+            lt_objs[ltname] = obj
+
+        # Leave balances for all employees
+        for emp in emp_objs.values():
+            for lt in lt_objs.values():
+                if lt.type_name in ('Maternity Leave', 'Paternity Leave'):
+                    continue
+                LeaveBalance.objects.get_or_create(
+                    employee=emp, leave_type=lt, year=2026,
+                    defaults={
+                        'entitled': lt.days_per_year,
+                        'taken': 0,
+                        'remaining': lt.days_per_year,
+                    }
+                )
+
+        self.stdout.write(self.style.SUCCESS(f'  {len(lt_objs)} leave types, balances created'))
+
+        # ─────────────────────────────────────────────────────
+        # TEACHER ASSIGNMENTS
+        # ─────────────────────────────────────────────────────
+        teacher_data = [
+            ('MIE-EMP-003', 'IFY', 'Mathematics for Engineers', 'MAT101', 6),
+            ('MIE-EMP-003', 'IFY', 'Physics', 'PHY101', 6),
+            ('MIE-EMP-005', 'IFY', 'English for Academic Purposes', 'ENG101', 4),
+            ('MIE-EMP-007', 'IYO', 'Advanced Mathematics', 'MAT201', 6),
+            ('MIE-EMP-007', 'IYO', 'Engineering Principles', 'ENG201', 6),
+            ('MIE-EMP-006', 'MP', 'Research Methodology', 'RES301', 4),
+        ]
+        prog_map = {'IFY': ify, 'IYO': iyo, 'MP': mp}
+        ta_count = 0
+        for ecode, pcode, mname, mcode, hours in teacher_data:
+            _, created = TeacherAssignment.objects.get_or_create(
+                employee=emp_objs[ecode],
+                programme=prog_map[pcode],
+                module_code=mcode,
+                defaults={
+                    'module_name': mname,
+                    'academic_year': ay25,
+                    'hours_per_week': hours,
+                    'start_date': '2025-10-01',
+                    'branch': emp_objs[ecode].branch,
+                }
+            )
+            if created:
+                ta_count += 1
+        self.stdout.write(self.style.SUCCESS(f'  {ta_count} teacher assignments'))
+
+        # ─────────────────────────────────────────────────────
+        # COUNSELOR ASSIGNMENTS
+        # ─────────────────────────────────────────────────────
+        nadia = emp_objs['MIE-EMP-005']
+        zahir = emp_objs['MIE-EMP-006']
+        ca_count = 0
+
+        for code, student in student_objs.items():
+            counselor = nadia if student.branch == dhk else zahir
+            atype = 'Career' if student.status == 'Completed' else (
+                'Visa' if student.progression_status == 'Visa Process' else 'Primary'
+            )
+            _, created = CounselorAssignment.objects.get_or_create(
+                employee=counselor, student=student,
+                assignment_type=atype,
+                defaults={
+                    'assigned_date': student.admission_date,
+                    'branch': student.branch,
+                }
+            )
+            if created:
+                ca_count += 1
+        self.stdout.write(self.style.SUCCESS(f'  {ca_count} counselor assignments'))
+
+        # ─────────────────────────────────────────────────────
+        # STUDENT MEETINGS
+        # ─────────────────────────────────────────────────────
+        meetings_data = [
+            ('STU-DHK-2025-0001', 'MIE-EMP-005', '2025-10-05 10:00', 'In-person',
+             'Initial counseling session',
+             'Discussed programme overview, university options, career goals',
+             'Student interested in CS at University of Birmingham'),
+            ('STU-DHK-2025-0001', 'MIE-EMP-005', '2026-02-10 14:00', 'In-person',
+             'University application review',
+             'Reviewed personal statement, selected 3 universities',
+             'Applications submitted to UoB, Leeds, Bristol'),
+            ('STU-DHK-2025-0005', 'MIE-EMP-005', '2026-03-01 11:00', 'In-person',
+             'Conditional offer discussion',
+             'Conditional offer from UoB — need BBB grades',
+             'Study plan created for final exams'),
+            ('STU-DHK-2025-0007', 'MIE-EMP-005', '2026-01-15 10:00', 'Video',
+             'Visa preparation',
+             'Reviewed visa documents, financial requirements',
+             'Documents checklist provided'),
+            ('STU-DHK-2025-0012', 'MIE-EMP-005', '2026-05-15 15:00', 'In-person',
+             'Visa application review',
+             'Checked all visa documents, financial proof ready',
+             'Application submitted to VFS'),
+            ('STU-CTG-2025-0001', 'MIE-EMP-006', '2025-10-10 10:00', 'In-person',
+             'Initial counseling CTG',
+             'Programme overview and university selection for IFY student',
+             'Shortlisted 4 UK universities'),
+            ('STU-CTG-2025-0004', 'MIE-EMP-006', '2026-04-05 14:00', 'Phone',
+             'Conditional offer follow-up',
+             'Need to improve IELTS score from 5.5 to 6.5',
+             'Referred to extra English classes'),
+            ('STU-DHK-2025-0010', 'MIE-EMP-005', '2026-03-20 09:00', 'In-person',
+             'Post-graduation career guidance',
+             'Discussed Masters options and scholarship opportunities',
+             'Applied to 3 UK universities for MSc Data Science'),
+        ]
+        for scode, ecode, dt, mtype, purpose, disc, outcome in meetings_data:
+            StudentMeeting.objects.get_or_create(
+                student=student_objs[scode],
+                employee=emp_objs[ecode],
+                meeting_date=datetime.fromisoformat(dt),
+                defaults={
+                    'meeting_type': mtype,
+                    'purpose': purpose,
+                    'discussion': disc,
+                    'outcome': outcome,
+                    'branch': student_objs[scode].branch,
+                }
+            )
+        self.stdout.write(self.style.SUCCESS(f'  {len(meetings_data)} student meetings'))
+
+
+
+
         # ─────────────────────────────────────────────────────
         # DONE
         # ─────────────────────────────────────────────────────
@@ -930,4 +1234,16 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'  {MainLedger.objects.count()} ledger entries'))
         self.stdout.write(self.style.SUCCESS(f'  {StudentDue.objects.count()} due records'))
         self.stdout.write(self.style.SUCCESS(f'  {ProgressionRecord.objects.count()} progressions'))
+        self.stdout.write(self.style.SUCCESS(f'  {ChartOfAccount.objects.count()} COA'))
+        self.stdout.write(self.style.SUCCESS(f'  {Student.objects.count()} students'))
+        self.stdout.write(self.style.SUCCESS(f'  {Payment.objects.count()} payments'))
+        self.stdout.write(self.style.SUCCESS(f'  {Voucher.objects.count()} vouchers'))
+        self.stdout.write(self.style.SUCCESS(f'  {MainLedger.objects.count()} ledger entries'))
+        self.stdout.write(self.style.SUCCESS(f'  {StudentDue.objects.count()} dues'))
+        self.stdout.write(self.style.SUCCESS(f'  {ProgressionRecord.objects.count()} progressions'))
+        self.stdout.write(self.style.SUCCESS(f'  {Dept.objects.count()} departments'))
+        self.stdout.write(self.style.SUCCESS(f'  {Emp.objects.count()} employees'))
+        self.stdout.write(self.style.SUCCESS(f'  {TA.objects.count()} teacher assignments'))
+        self.stdout.write(self.style.SUCCESS(f'  {CA.objects.count()} counselor assignments'))
+        self.stdout.write(self.style.SUCCESS(f'  {SM.objects.count()} student meetings'))
         self.stdout.write(self.style.WARNING('=' * 60))

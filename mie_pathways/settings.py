@@ -34,6 +34,8 @@ INSTALLED_APPS = [
     'apps.accounting',
     'apps.progression',
     'apps.reports',
+    'apps.hrm',               
+    'apps.notifications',  
 ]
 
 MIDDLEWARE = [
