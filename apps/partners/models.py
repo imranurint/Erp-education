@@ -36,7 +36,6 @@ class Partner(models.Model):
 
     class Meta:
         db_table = 'partners'
-        managed = False
         ordering = ['partner_name']
 
     def __str__(self):
@@ -67,7 +66,6 @@ class University(models.Model):
 
     class Meta:
         db_table = 'universities'
-        managed = False
         ordering = ['university_name']
 
     def __str__(self):

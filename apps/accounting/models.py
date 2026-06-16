@@ -19,7 +19,6 @@ class ChartOfAccount(models.Model):
 
     class Meta:
         db_table = 'chart_of_accounts'
-        managed = False
         ordering = ['coa_code']
 
     def __str__(self):
@@ -41,7 +40,6 @@ class ProgrammeFeeHead(models.Model):
 
     class Meta:
         db_table = 'programme_fee_heads'
-        managed = False
 
 
 class Payment(models.Model):
@@ -83,7 +81,6 @@ class Payment(models.Model):
 
     class Meta:
         db_table = 'payments'
-        managed = False
         ordering = ['-date', '-created_at']
 
     def __str__(self):
@@ -103,7 +100,6 @@ class PaymentItem(models.Model):
 
     class Meta:
         db_table = 'payment_items'
-        managed = False
 
 
 class Voucher(models.Model):
@@ -133,7 +129,6 @@ class Voucher(models.Model):
 
     class Meta:
         db_table = 'vouchers'
-        managed = False
         ordering = ['-date', '-created_at']
 
     def __str__(self):
@@ -159,7 +154,6 @@ class VoucherEntry(models.Model):
 
     class Meta:
         db_table = 'voucher_entries'
-        managed = False
 
 
 class MainLedger(models.Model):
@@ -193,7 +187,6 @@ class MainLedger(models.Model):
 
     class Meta:
         db_table = 'main_ledger'
-        managed = False
         ordering = ['-entry_date']
 
 
@@ -216,7 +209,6 @@ class StudentLedger(models.Model):
 
     class Meta:
         db_table = 'student_ledger'
-        managed = False
         ordering = ['entry_date']
 
 
@@ -241,7 +233,6 @@ class PettyCash(models.Model):
 
     class Meta:
         db_table = 'petty_cash'
-        managed = False
         ordering = ['-date']
 
 
@@ -270,7 +261,6 @@ class LateFeeCharge(models.Model):
 
     class Meta:
         db_table = 'late_fee_charges'
-        managed = False
 
 
 class FinancialSnapshot(models.Model):
@@ -296,6 +286,5 @@ class FinancialSnapshot(models.Model):
 
     class Meta:
         db_table = 'financial_snapshots'
-        managed = False
         unique_together = [('snapshot_date', 'branch')]
         ordering = ['-snapshot_date']

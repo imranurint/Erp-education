@@ -26,7 +26,6 @@ class Programme(models.Model):
 
     class Meta:
         db_table = 'programmes'
-        managed = False
         ordering = ['programme_name']
 
     def __str__(self):
@@ -51,7 +50,6 @@ class AcademicYear(models.Model):
 
     class Meta:
         db_table = 'academic_years'
-        managed = False
         ordering = ['-start_date']
 
     def __str__(self):
@@ -81,7 +79,6 @@ class FiscalPeriod(models.Model):
 
     class Meta:
         db_table = 'fiscal_periods'
-        managed = False
         unique_together = [('year', 'period_number', 'branch')]
         ordering = ['year', 'period_number']
 
@@ -100,7 +97,7 @@ class AcademicRecord(models.Model):
     score = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
     grade = models.CharField(max_length=10, blank=True, null=True)
     max_score = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
-    result = models.CharField(max_length=10, default='Pending')
+    result = models.CharField(max_length=20, default='Pending')
     assessment_date = models.DateField(blank=True, null=True)
     academic_year = models.ForeignKey(
         AcademicYear, on_delete=models.DO_NOTHING, blank=True, null=True,
@@ -120,7 +117,6 @@ class AcademicRecord(models.Model):
 
     class Meta:
         db_table = 'academic_records'
-        managed = False
 
 
 class Attendance(models.Model):
@@ -149,5 +145,4 @@ class Attendance(models.Model):
 
     class Meta:
         db_table = 'attendance'
-        managed = False
         unique_together = [('student', 'attendance_date', 'session_type')]

@@ -3,17 +3,6 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.contrib.auth.models import Permission, Group
 
 
-# Tell Django these tables exist but are not managed
-class PermissionProxy(Permission):
-    class Meta:
-        db_table = 'auth_permission'
-        managed = False
-
-
-class GroupProxy(Group):
-    class Meta:
-        db_table = 'auth_group'
-        managed = False
 
 
 
@@ -36,7 +25,6 @@ class Branch(models.Model):
 
     class Meta:
         db_table = 'branches'
-        managed = False
         ordering = ['branch_name']
 
     def __str__(self):
@@ -101,7 +89,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     class Meta:
         db_table = 'users'
-        managed = False
         ordering = ['name']
 
     def __str__(self):
@@ -119,7 +106,6 @@ class UserSession(models.Model):
 
     class Meta:
         db_table = 'user_sessions'
-        managed = False
 
 
 class ExchangeRate(models.Model):
@@ -141,7 +127,6 @@ class ExchangeRate(models.Model):
 
     class Meta:
         db_table = 'exchange_rates'
-        managed = False
         unique_together = [('from_currency', 'to_currency', 'effective_date')]
         ordering = ['-effective_date']
 
@@ -172,7 +157,6 @@ class Setting(models.Model):
 
     class Meta:
         db_table = 'settings'
-        managed = False
         unique_together = [('category', 'setting_key', 'branch')]
 
 
@@ -194,7 +178,6 @@ class Notification(models.Model):
 
     class Meta:
         db_table = 'notifications'
-        managed = False
         ordering = ['-created_at']
 
 
@@ -220,5 +203,4 @@ class AuditLog(models.Model):
 
     class Meta:
         db_table = 'audit_log'
-        managed = False
         ordering = ['-created_at']

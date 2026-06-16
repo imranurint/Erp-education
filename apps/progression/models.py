@@ -46,7 +46,6 @@ class ProgressionRecord(models.Model):
 
     class Meta:
         db_table = 'progression_records'
-        managed = False
         ordering = ['-created_at']
 
 
@@ -84,7 +83,6 @@ class UniversityCommission(models.Model):
 
     class Meta:
         db_table = 'university_commissions'
-        managed = False
 
 
 class PartnerCommission(models.Model):
@@ -126,7 +124,6 @@ class PartnerCommission(models.Model):
 
     class Meta:
         db_table = 'partner_commissions'
-        managed = False
 
 
 class PartnerPayment(models.Model):
@@ -150,4 +147,3 @@ class PartnerPayment(models.Model):
 
     class Meta:
         db_table = 'partner_payments'
-        managed = False

@@ -85,7 +85,6 @@ class Student(models.Model):
 
     class Meta:
         db_table = 'students'
-        managed = False
         ordering = ['-admission_date']
 
     def __str__(self):
@@ -116,7 +115,6 @@ class StudentDocument(models.Model):
 
     class Meta:
         db_table = 'student_documents'
-        managed = False
 
 
 class StudentFeeSetup(models.Model):
@@ -157,7 +155,6 @@ class StudentFeeSetup(models.Model):
 
     class Meta:
         db_table = 'student_fee_setup'
-        managed = False
 
 
 class StudentDue(models.Model):
@@ -183,7 +180,6 @@ class StudentDue(models.Model):
 
     class Meta:
         db_table = 'student_dues'
-        managed = False
         ordering = ['due_date']
 
 
@@ -213,4 +209,3 @@ class Discount(models.Model):
 
     class Meta:
         db_table = 'discounts'
-        managed = False
