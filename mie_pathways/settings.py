@@ -133,3 +133,51 @@ STATIC_URL = 'static/'
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+
+# ── Celery Configuration ──────────────────────────────────
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Dhaka'
+CELERY_ENABLE_UTC = True
+
+# Celery Beat Schedule
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'calculate-late-fees-nightly': {
+        'task': 'apps.accounting.tasks.calculate_late_fees',
+        'schedule': crontab(hour=1, minute=0),  # Daily 1 AM
+    },
+    'send-overdue-reminders-weekly': {
+        'task': 'apps.notifications.tasks.send_overdue_reminders',
+        'schedule': crontab(hour=9, minute=0, day_of_week='monday'),  # Monday 9 AM
+    },
+    'process-email-queue': {
+        'task': 'apps.notifications.tasks.process_email_queue',
+        'schedule': crontab(minute='*/5'),  # Every 5 minutes
+    },
+    'generate-monthly-snapshot': {
+        'task': 'apps.accounting.tasks.generate_monthly_snapshot',
+        'schedule': crontab(hour=2, minute=0, day_of_month=1),  # 1st of month 2 AM
+    },
+}
+
+# ── Email Configuration ───────────────────────────────────
+# For development — prints emails to console
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# For production — uncomment and configure:
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'noreply@miepathways.com'
+# EMAIL_HOST_PASSWORD = 'your-app-password'
+# DEFAULT_FROM_EMAIL = 'MIE Pathways <noreply@miepathways.com>'
+
