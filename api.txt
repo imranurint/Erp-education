@@ -98,3 +98,27 @@ SCHEDULED (Celery Beat — runs automatically):
   Monday 9:00 AM     → send overdue reminders to students
   Every 5 minutes    → process and send email queue
   1st of month 2 AM  → generate financial snapshot
+
+
+
+
+
+
+
+  COMPLETE ENDPOINT COUNT:
+
+MODULE            ENDPOINTS
+──────            ─────────
+Auth              2
+Core              22
+Academics         19
+Students          22
+Partners          14
+Accounting        29
+Progression       16
+Reports           5
+HRM               41    ← NEW
+PDF Downloads     6     ← NEW
+Notifications     3     ← NEW
+─────────────────────
+TOTAL             179 endpoints
