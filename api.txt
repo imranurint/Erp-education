@@ -117,8 +117,8 @@ Partners          14
 Accounting        29
 Progression       16
 Reports           5
-HRM               41    ← NEW
-PDF Downloads     6     ← NEW
-Notifications     3     ← NEW
+HRM               41    
+PDF Downloads     6     
+Notifications     3     
 ─────────────────────
 TOTAL             179 endpoints
