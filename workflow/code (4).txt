@@ -1,0 +1,81 @@
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                    INTER-DOMAIN CONNECTIONS                                   │
+│                                                                              │
+│                                                                              │
+│    CORE ◄──────────────────────────────────────────────────────────────┐     │
+│     │  users are referenced by ALL domains                             │     │
+│     │  branches are referenced by ALL domains                          │     │
+│     │                                                                  │     │
+│     ▼                                                                  │     │
+│    ┌─────────┐         ┌───────────┐         ┌───────────┐            │     │
+│    │ACADEMICS│         │ STUDENTS  │         │ PARTNERS  │            │     │
+│    │         │         │           │         │           │            │     │
+│    │programme│◄────────│student    │────────►│partner    │            │     │
+│    │has fee  │         │belongs to │         │refers     │            │     │
+│    │heads    │         │programme  │         │students   │            │     │
+│    │         │         │           │         │           │            │     │
+│    │academic │         │student    │         │university │            │     │
+│    │record   │────────►│dues track │         │has        │            │     │
+│    │links to │         │fees       │         │commission │            │     │
+│    │programme│         │           │         │agreement  │            │     │
+│    └────┬────┘         └─────┬─────┘         └─────┬─────┘            │     │
+│         │                    │                     │                  │     │
+│         │                    │                     │                  │     │
+│         ▼                    ▼                     ▼                  │     │
+│    ┌──────────────────────────────────────────────────────┐          │     │
+│    │                    ACCOUNTING                         │          │     │
+│    │                                                       │          │     │
+│    │  Everything flows into main_ledger:                   │          │     │
+│    │                                                       │          │     │
+│    │  Student fee ──→ Payment ──→ PaymentItem ──→ MainLedger│         │     │
+│    │  Expense    ──→ Voucher ──→ VoucherEntry ──→ MainLedger│         │     │
+│    │  Payroll    ──→ Voucher ──→ VoucherEntry ──→ MainLedger│         │     │
+│    │                                                       │          │     │
+│    │  All ledger entries reference:                        │          │     │
+│    │    - coa_id (Chart of Accounts)                       │          │     │
+│    │    - branch_id (Branch)                               │          │     │
+│    │    - fiscal_period_id (Fiscal Period)                 │          │     │
+│    │    - student_id (Student) — when applicable           │          │     │
+│    │                                                       │          │     │
+│    └────────────────────────┬──────────────────────────────┘          │     │
+│                             │                                         │     │
+│                             ▼                                         │     │
+│    ┌──────────────────────────────────────────────────────┐          │     │
+│    │                    PROGRESSION                        │          │     │
+│    │                                                       │          │     │
+│    │  Student ──→ ProgressionRecord ──→ University         │          │     │
+│    │  ProgressionRecord ──→ UniversityCommission           │          │     │
+│    │  UniversityCommission ──→ PartnerCommission           │          │     │
+│    │  PartnerCommission ──→ PartnerPayment                 │          │     │
+│    │  PartnerPayment ──→ MainLedger (via bank COA)         │          │     │
+│    │                                                       │          │     │
+│    └────────────────────────┬──────────────────────────────┘          │     │
+│                             │                                         │     │
+│                             ▼                                         │     │
+│    ┌──────────────────────────────────────────────────────┐          │     │
+│    │                    HRM                                │          │     │
+│    │                                                       │          │     │
+│    │  User ──→ Employee (extends user with HR data)        │          │     │
+│    │  Employee ──→ SalaryStructure                         │          │     │
+│    │  Employee ──→ TeacherAssignment ──→ Programme         │          │     │
+│    │  Employee ──→ CounselorAssignment ──→ Student         │          │     │
+│    │  Employee ──→ StudentMeeting ──→ Student              │          │     │
+│    │  Employee ──→ StaffAttendance                         │          │     │
+│    │  Employee ──→ LeaveRequest ──→ LeaveType              │          │     │
+│    │  Payroll ──→ PayrollItem ──→ Employee                 │          │     │
+│    │  Payroll ──→ Voucher (accounting integration)         │          │     │
+│    │                                                       │          │     │
+│    └────────────────────────┬──────────────────────────────┘          │     │
+│                             │                                         │     │
+│                             ▼                                         │     │
+│    ┌──────────────────────────────────────────────────────┐          │     │
+│    │                 NOTIFICATIONS                          │          │     │
+│    │                                                       │          │     │
+│    │  Payment.approve() ──→ EmailQueue (confirmation)      │──────────┘     │
+│    │  Overdue Dues ──→ EmailQueue (reminder)                               │
+│    │  Any PDF gen ──→ GeneratedDocument                                    │
+│    │  Celery tasks ──→ ScheduledTaskLog                                    │
+│    │                                                                       │
+│    └───────────────────────────────────────────────────────────────────────┘
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘

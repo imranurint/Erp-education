@@ -1,8 +1,8 @@
-AUTH:
+AUTHENTICATION (2):
   POST   /api/v1/auth/login/
   POST   /api/v1/auth/refresh/
 
-CORE:
+CORE (22):
   CRUD   /api/v1/branches/
   CRUD   /api/v1/users/
   GET    /api/v1/users/me/
@@ -12,7 +12,7 @@ CORE:
   CRUD   /api/v1/notifications/
   GET    /api/v1/audit-log/
 
-ACADEMICS:
+ACADEMICS (19):
   CRUD   /api/v1/programmes/
   CRUD   /api/v1/academic-years/
   POST   /api/v1/academic-years/{id}/close_year/
@@ -23,7 +23,7 @@ ACADEMICS:
   CRUD   /api/v1/attendance/
   POST   /api/v1/attendance/bulk_create/
 
-STUDENTS:
+STUDENTS (22):
   CRUD   /api/v1/students/
   GET    /api/v1/students/{id}/ledger/
   GET    /api/v1/students/{id}/dues/
@@ -36,14 +36,14 @@ STUDENTS:
   GET    /api/v1/dues/upcoming/
   CRUD   /api/v1/discounts/
 
-PARTNERS:
+PARTNERS (14):
   CRUD   /api/v1/partners/
   GET    /api/v1/partners/{id}/students/
   GET    /api/v1/partners/{id}/commissions/
   CRUD   /api/v1/universities/
   GET    /api/v1/universities/{id}/students/
 
-ACCOUNTING:
+ACCOUNTING (29):
   CRUD   /api/v1/coa/
   GET    /api/v1/coa/tree/
   GET    /api/v1/coa/balances/
@@ -62,7 +62,7 @@ ACCOUNTING:
   POST   /api/v1/late-fees/calculate/
   GET    /api/v1/snapshots/
 
-PROGRESSION:
+PROGRESSION (16):
   CRUD   /api/v1/progression/
   POST   /api/v1/progression/{id}/update_status/
   POST   /api/v1/progression/{id}/trigger_commission/
@@ -72,53 +72,56 @@ PROGRESSION:
   POST   /api/v1/partner-commissions/{id}/approve/
   CRUD   /api/v1/partner-payments/
 
-REPORTS:
+REPORTS (5):
   GET    /api/v1/reports/dashboard/
   GET    /api/v1/reports/income-statement/
   GET    /api/v1/reports/balance-sheet/
   GET    /api/v1/reports/cash-flow/
   GET    /api/v1/reports/progression/
 
+HRM (41):
+  CRUD   /api/v1/hrm/departments/
+  CRUD   /api/v1/hrm/designations/
+  CRUD   /api/v1/hrm/employees/
+  GET    /api/v1/hrm/employees/{id}/salary/
+  GET    /api/v1/hrm/employees/{id}/attendance/
+  GET    /api/v1/hrm/employees/{id}/leaves/
+  GET    /api/v1/hrm/employees/{id}/students/
+  GET    /api/v1/hrm/employees/{id}/teaching/
+  CRUD   /api/v1/hrm/salary-structures/
+  CRUD   /api/v1/hrm/leave-types/
+  CRUD   /api/v1/hrm/leave-requests/
+  POST   /api/v1/hrm/leave-requests/{id}/approve/
+  POST   /api/v1/hrm/leave-requests/{id}/reject/
+  CRUD   /api/v1/hrm/leave-balances/
+  CRUD   /api/v1/hrm/staff-attendance/
+  POST   /api/v1/hrm/staff-attendance/bulk_create/
+  CRUD   /api/v1/hrm/payroll/
+  POST   /api/v1/hrm/payroll/generate/
+  POST   /api/v1/hrm/payroll/{id}/approve/
+  POST   /api/v1/hrm/payroll/{id}/mark_paid/
+  GET    /api/v1/hrm/payroll/{id}/items/
+  CRUD   /api/v1/hrm/teacher-assignments/
+  CRUD   /api/v1/hrm/counselor-assignments/
+  CRUD   /api/v1/hrm/student-meetings/
 
-PDF DOWNLOADS:
-  GET  /api/v1/documents/receipt/{payment_id}/               ← receipt PDF
-  GET  /api/v1/documents/payslip/{payroll_item_id}/          ← payslip PDF
-  POST /api/v1/documents/income-statement/                   ← P&L PDF
-  POST /api/v1/documents/balance-sheet/                      ← balance sheet PDF
-  GET  /api/v1/documents/student-statement/{student_id}/     ← student statement
-  GET  /api/v1/documents/invoice/{student_id}/               ← unpaid invoice
+PDF DOWNLOADS (6):
+  GET    /api/v1/documents/receipt/{payment_id}/
+  GET    /api/v1/documents/payslip/{payroll_item_id}/
+  POST   /api/v1/documents/income-statement/
+  POST   /api/v1/documents/balance-sheet/
+  GET    /api/v1/documents/student-statement/{student_id}/
+  GET    /api/v1/documents/invoice/{student_id}/
 
-EMAIL & TASK MANAGEMENT:
-  GET  /api/v1/email-queue/                                  ← view queued emails
-  GET  /api/v1/generated-documents/                          ← all generated PDFs
-  GET  /api/v1/task-logs/                                    ← scheduled task history
+NOTIFICATIONS (3):
+  GET    /api/v1/email-queue/
+  GET    /api/v1/generated-documents/
+  GET    /api/v1/task-logs/
 
-SCHEDULED (Celery Beat — runs automatically):
-  Daily 1:00 AM      → calculate late fees on overdue dues
-  Monday 9:00 AM     → send overdue reminders to students
-  Every 5 minutes    → process and send email queue
-  1st of month 2 AM  → generate financial snapshot
+SCHEDULED (Celery Beat — automatic):
+  Daily 1:00 AM      → calculate_late_fees
+  Monday 9:00 AM     → send_overdue_reminders
+  Every 5 minutes    → process_email_queue
+  1st of month 2 AM  → generate_monthly_snapshot
 
-
-
-
-
-
-
-  COMPLETE ENDPOINT COUNT:
-
-MODULE            ENDPOINTS
-──────            ─────────
-Auth              2
-Core              22
-Academics         19
-Students          22
-Partners          14
-Accounting        29
-Progression       16
-Reports           5
-HRM               41    
-PDF Downloads     6     
-Notifications     3     
-─────────────────────
-TOTAL             179 endpoints
+TOTAL: 179 endpoints + 4 scheduled tasks

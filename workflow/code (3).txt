@@ -1,0 +1,302 @@
+STUDENT LIFECYCLE — COMPLETE DATA FLOW
+═══════════════════════════════════════
+
+PHASE 1: ADMISSION
+──────────────────
+branches          ─→  Student.branch
+programmes        ─→  Student.programme
+partners          ─→  Student.partner (if referred)
+users             ─→  Student created by
+
+                  ┌────────────────────────────────────────────┐
+  POST /students/ │ students: INSERT                            │
+                  │ student_code, full_name, programme_id,     │
+                  │ branch_id, partner_id, admission_date       │
+                  └────────────────────────────────────────────┘
+                                   │
+                                   ▼
+                  ┌────────────────────────────────────────────┐
+POST /fee-setups/ │ student_fee_setup: INSERT                   │
+                  │ student_id, programme_id, total_fee,        │
+                  │ discount_amount, net_payable, installments  │
+                  └────────────────────────────────────────────┘
+                                   │
+                                   ▼
+                  ┌────────────────────────────────────────────┐
+/generate_dues/   │ student_dues: INSERT (N rows)               │
+                  │ One row per installment per fee head         │
+                  │ status='Unpaid', paid_amount=0              │
+                  └────────────────────────────────────────────┘
+                                   │
+                                   ▼
+                  ┌────────────────────────────────────────────┐
+/counselor-       │ counselor_assignments: INSERT               │
+ assignments/     │ employee_id (counselor), student_id,        │
+                  │ assignment_type='Primary'                   │
+                  └────────────────────────────────────────────┘
+
+
+PHASE 2: TEACHING & ATTENDANCE
+───────────────────────────────
+                  ┌────────────────────────────────────────────┐
+/teacher-         │ teacher_assignments: INSERT                 │
+ assignments/     │ employee_id (teacher), programme_id,        │
+                  │ module_name, module_code, hours_per_week    │
+                  └────────────────────────────────────────────┘
+                                   │
+                                   ▼
+                  ┌────────────────────────────────────────────┐
+/attendance/      │ attendance: INSERT (bulk)                   │
+ /bulk_create/    │ student_id, programme_id, date, status      │
+                  │ (Present/Absent/Late)                       │
+                  └────────────────────────────────────────────┘
+                                   │
+                                   ▼
+                  ┌────────────────────────────────────────────┐
+/academic-        │ academic_records: INSERT                    │
+ records/         │ student_id, module_name, score, grade       │
+                  │ (Teacher records coursework/exam results)   │
+                  └────────────────────────────────────────────┘
+
+                  ┌────────────────────────────────────────────┐
+/hrm/staff-       │ staff_attendance: INSERT (bulk)             │
+ attendance/      │ employee_id, date, status, overtime_hours   │
+ /bulk_create/    │ (Used later for payroll calculation)        │
+                  └────────────────────────────────────────────┘
+
+
+PHASE 3: COUNSELING
+───────────────────
+                  ┌────────────────────────────────────────────┐
+/hrm/student-     │ student_meetings: INSERT                    │
+ meetings/        │ student_id, employee_id (counselor),        │
+                  │ meeting_date, purpose, discussion, outcome  │
+                  └────────────────────────────────────────────┘
+
+                  (Counselor tracks student progress)
+                  (Counselor helps with university applications)
+
+
+PHASE 4: FEE COLLECTION
+────────────────────────
+                  ┌────────────────────────────────────────────┐
+/payments/        │ payments: INSERT                            │
+                  │ receipt_no, student_id, amount, method      │
+                  │ status='Pending'                            │
+                  └──────────────────┬─────────────────────────┘
+                                     │
+                                     ▼
+                  ┌────────────────────────────────────────────┐
+/payments/{id}/   │ payments: UPDATE status='Approved'          │
+ /approve/        │                                             │
+                  │ TRIGGERS (auto):                            │
+                  │                                             │
+                  │ 1. payment_items: INSERT                    │
+                  │    payment_id, coa_id, amount, due_id       │
+                  │                                             │
+                  │ 2. student_dues: UPDATE                     │
+                  │    paid_amount += payment                   │
+                  │    due_amount -= payment                    │
+                  │    status = Paid/Partial                    │
+                  │                                             │
+                  │ 3. main_ledger: INSERT (2 rows)             │
+                  │    DR: Bank (1121)                          │
+                  │    CR: Fee Income (4101/4102/4103/4104)     │
+                  │                                             │
+                  │ 4. student_ledger: INSERT                   │
+                  │    credit = payment amount                  │
+                  │    balance updated                          │
+                  │                                             │
+                  │ 5. students: UPDATE totals                  │
+                  │    total_paid += amount                     │
+                  │    total_due -= amount                      │
+                  │                                             │
+                  │ 6. email_queue: INSERT (Celery task)        │
+                  │    "Payment Confirmation" to student email  │
+                  └────────────────────────────────────────────┘
+
+
+PHASE 5: EXPENSES
+──────────────────
+                  ┌────────────────────────────────────────────┐
+/vouchers/        │ vouchers: INSERT                            │
+                  │ voucher_no, type='Payment', narration       │
+                  │ status='Draft'                              │
+                  └──────────────────┬─────────────────────────┘
+                                     │
+                                     ▼
+                  ┌────────────────────────────────────────────┐
+/vouchers/{id}/   │ vouchers: UPDATE status='Approved'          │
+ /approve/        │                                             │
+                  │ TRIGGERS (auto):                            │
+                  │                                             │
+                  │ 1. voucher_entries: INSERT (N rows)         │
+                  │    DR: Expense accounts                     │
+                  │    CR: Bank/Cash accounts                   │
+                  │                                             │
+                  │ 2. main_ledger: INSERT (N rows)             │
+                  │    Mirrors voucher entries                  │
+                  │    Links to fiscal_period                   │
+                  └────────────────────────────────────────────┘
+
+
+PHASE 6: LEAVE & PAYROLL
+─────────────────────────
+                  ┌────────────────────────────────────────────┐
+/hrm/leave-       │ leave_requests: INSERT                      │
+ requests/        │ employee_id, leave_type_id, dates           │
+                  │ status='Pending'                            │
+                  └──────────────────┬─────────────────────────┘
+                                     │
+                      ┌──────────────┼──────────────┐
+                      ▼              │              ▼
+              /approve/              │        /reject/
+                      │              │              │
+                      ▼              │              ▼
+              status='Approved'      │     status='Rejected'
+              leave_balances.taken++ │     reason logged
+              leave_balances.remaining--
+                                     │
+                  ┌────────────────────────────────────────────┐
+/hrm/payroll/     │ payroll: INSERT                             │
+ /generate/       │ month, year, period_label, totals           │
+                  │ status='Draft'                              │
+                  │                                             │
+                  │ For each active employee:                   │
+                  │  payroll_items: INSERT                      │
+                  │   basic + allowances = gross                │
+                  │   deductions + absent_ded = total_deduction │
+                  │   gross - deductions = net_salary           │
+                  │   (Uses staff_attendance for absences)      │
+                  └──────────────────┬─────────────────────────┘
+                                     │
+                                     ▼
+                  ┌────────────────────────────────────────────┐
+/hrm/payroll/     │ payroll: UPDATE status='Approved'           │
+ {id}/approve/    │                                             │
+                  └──────────────────┬─────────────────────────┘
+                                     │
+                                     ▼
+                  ┌────────────────────────────────────────────┐
+/hrm/payroll/     │ payroll: UPDATE status='Paid'               │
+ {id}/mark_paid/  │ payroll_items: UPDATE all status='Paid'     │
+                  │                                             │
+                  │ GET /documents/payslip/{item_id}/           │
+                  │ → Generates PDF payslip for each employee   │
+                  └────────────────────────────────────────────┘
+
+
+PHASE 7: PROGRESSION
+─────────────────────
+                  ┌────────────────────────────────────────────┐
+/progression/     │ progression_records: INSERT                 │
+                  │ student_id, university_id, programme        │
+                  │ application_status, visa_status             │
+                  └──────────────────┬─────────────────────────┘
+                                     │
+                                     ▼
+                  ┌────────────────────────────────────────────┐
+/progression/     │ progression_records: UPDATE                 │
+ {id}/            │ application_status: Applied→Offer→Accepted  │
+ update_status/   │ visa_status: Not Started→Applied→Granted   │
+                  │ enrollment_status: Not Enrolled→Enrolled    │
+                  └──────────────────┬─────────────────────────┘
+                                     │
+                                     ▼
+                  ┌────────────────────────────────────────────┐
+/progression/     │ university_commissions: INSERT              │
+ {id}/            │ Based on university's commission agreement  │
+ trigger_         │ rate × tuition = gross commission           │
+ commission/      │ gross × exchange_rate = BDT                 │
+                  │ status='Expected'                           │
+                  └──────────────────┬─────────────────────────┘
+                                     │
+                                     ▼
+                  ┌────────────────────────────────────────────┐
+/university-      │ university_commissions: UPDATE              │
+ commissions/     │ status: Expected → Received                 │
+ {id}/            │                                             │
+ mark_received/   │ TRIGGERS:                                   │
+                  │ partner_commissions: INSERT                 │
+                  │  (auto-calculated based on partner terms)   │
+                  └──────────────────┬─────────────────────────┘
+                                     │
+                                     ▼
+                  ┌────────────────────────────────────────────┐
+/partner-         │ partner_commissions: UPDATE                 │
+ commissions/     │ status: Calculated → Approved               │
+ {id}/approve/    │                                             │
+                  └──────────────────┬─────────────────────────┘
+                                     │
+                                     ▼
+                  ┌────────────────────────────────────────────┐
+/partner-         │ partner_payments: INSERT                    │
+ payments/        │ partner_commission_id, amount, method       │
+                  │ status='Completed'                          │
+                  │                                             │
+                  │ main_ledger: INSERT                         │
+                  │  DR: Partner Commission Expense (5403)      │
+                  │  CR: Bank (1121)                            │
+                  └────────────────────────────────────────────┘
+
+
+PHASE 8: REPORTS
+─────────────────
+                  ┌────────────────────────────────────────────┐
+                  │ All reports read from main_ledger:          │
+                  │                                             │
+                  │ Income Statement:                           │
+                  │   Income:  SUM(credit) - SUM(debit)        │
+                  │   Expense: SUM(debit) - SUM(credit)        │
+                  │   Profit:  Income - Expense                │
+                  │                                             │
+                  │ Balance Sheet:                              │
+                  │   Assets:      SUM(debit) - SUM(credit)    │
+                  │   Liabilities: SUM(credit) - SUM(debit)    │
+                  │   Equity:      SUM(credit) - SUM(debit)    │
+                  │   Check: Assets = Liabilities + Equity     │
+                  │                                             │
+                  │ Trial Balance:                              │
+                  │   All accounts: debit vs credit totals     │
+                  │   Total DR must = Total CR                 │
+                  │                                             │
+                  │ Dashboard:                                  │
+                  │   Aggregated from all domains               │
+                  │   Students, payments, dues, commissions     │
+                  └────────────────────────────────────────────┘
+
+
+PHASE 9: SCHEDULED TASKS (CELERY — AUTOMATIC)
+──────────────────────────────────────────────
+                  ┌────────────────────────────────────────────┐
+                  │ DAILY 1:00 AM                              │
+                  │ calculate_late_fees:                        │
+                  │   student_dues WHERE status=Unpaid          │
+                  │   AND due_date < TODAY → status=Overdue    │
+                  │   late_fee_charges: INSERT (2% per month)  │
+                  └────────────────────────────────────────────┘
+
+                  ┌────────────────────────────────────────────┐
+                  │ MONDAY 9:00 AM                              │
+                  │ send_overdue_reminders:                     │
+                  │   Find all students with Overdue dues      │
+                  │   email_queue: INSERT per student           │
+                  └────────────────────────────────────────────┘
+
+                  ┌────────────────────────────────────────────┐
+                  │ EVERY 5 MINUTES                             │
+                  │ process_email_queue:                        │
+                  │   email_queue WHERE status=Queued           │
+                  │   Send via SMTP                             │
+                  │   Update: Sent or Failed (retry 3x)        │
+                  └────────────────────────────────────────────┘
+
+                  ┌────────────────────────────────────────────┐
+                  │ 1st OF MONTH 2:00 AM                       │
+                  │ generate_monthly_snapshot:                  │
+                  │   For each branch:                          │
+                  │     Calculate monthly income/expense        │
+                  │     Count active students                   │
+                  │     Sum collections                         │
+                  │   financial_snapshots: INSERT               │
+                  └────────────────────────────────────────────┘

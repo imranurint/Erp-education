@@ -1,0 +1,79 @@
+ORDER (parent → child):
+
+ LAYER 1 (no dependencies):
+  branches
+  chart_of_accounts
+  academic_years
+  leave_types
+  settings
+  exchange_rates
+
+ LAYER 2 (depends on L1):
+  users                    → branches
+  programmes               → branches
+  fiscal_periods           → academic_years
+  departments              → branches, users
+  universities             → (none)
+
+ LAYER 3 (depends on L2):
+  designations             → departments
+  partners                 → branches
+  programme_fee_heads      → programmes, chart_of_accounts
+
+ LAYER 4 (depends on L3):
+  employees                → users, departments, designations, branches
+  students                 → programmes, branches, partners
+
+ LAYER 5 (depends on L4):
+  salary_structures        → employees
+  student_fee_setup        → students, programmes
+  student_documents        → students
+  discounts                → students
+  teacher_assignments      → employees, programmes
+  counselor_assignments    → employees, students
+  leave_balances           → employees, leave_types
+  leave_requests           → employees, leave_types
+  staff_attendance         → employees
+
+ LAYER 6 (depends on L5):
+  student_dues             → students, chart_of_accounts
+  student_meetings         → students, employees
+  attendance               → students, programmes
+  academic_records         → students, programmes, academic_years
+
+ LAYER 7 (depends on L6):
+  payments                 → students, chart_of_accounts, users
+  late_fee_charges         → students, student_dues
+
+ LAYER 8 (depends on L7):
+  payment_items            → payments, chart_of_accounts, student_dues
+  vouchers                 → users, branches
+
+ LAYER 9 (depends on L8):
+  voucher_entries          → vouchers, chart_of_accounts
+  payroll                  → vouchers (nullable), branches, users
+  main_ledger              → chart_of_accounts, students, vouchers,
+                             voucher_entries, fiscal_periods
+
+ LAYER 10 (depends on L9):
+  payroll_items            → payroll, employees
+  student_ledger           → students, main_ledger
+  petty_cash               → users, branches, vouchers
+
+ LAYER 11 (depends on L10):
+  progression_records      → students, universities
+  financial_snapshots      → branches
+  notifications            → users
+  audit_log                → users
+
+ LAYER 12 (depends on L11):
+  university_commissions   → progression_records, universities, students
+  generated_documents      → users, branches
+  email_queue              → branches
+  scheduled_task_log       → (none)
+
+ LAYER 13 (depends on L12):
+  partner_commissions      → partners, students, university_commissions
+
+ LAYER 14 (depends on L13):
+  partner_payments         → partner_commissions, partners, chart_of_accounts
