@@ -128,6 +128,11 @@ class Command(BaseCommand):
             ('5601', 'Office Supplies', '5600', 'Expense', 'Admin Expense'),
             ('5605', 'Bank Charges & Fees', '5600', 'Expense', 'Admin Expense'),
             ('5608', 'Miscellaneous Expense', '5600', 'Expense', 'Admin Expense'),
+
+            ('5700', 'Depreciation', '5000', 'Expense', 'Header'),
+            ('5701', 'Depreciation - Equipment', '5700', 'Expense', 'Indirect Expense'),
+            ('5702', 'Depreciation - Furniture', '5700', 'Expense', 'Indirect Expense'),
+            ('5703', 'Depreciation - Computers', '5700', 'Expense', 'Indirect Expense'),
         ]
 
         coa_map = {}
@@ -1221,6 +1226,241 @@ class Command(BaseCommand):
 
 
 
+        # ─────────────────────────────────────────────────────
+        # ASSET MANAGEMENT
+        # ─────────────────────────────────────────────────────
+        self.stdout.write('  [SEED] Asset Categories & Assets...')
+
+        from apps.core.models import (
+            AssetCategory, Asset, AssetDepreciation,
+            AssetMaintenance, AssetAssignment
+        )
+
+        # Categories
+        cat_data = [
+            ('Office Equipment', 'Printers, scanners, projectors', 20.00, 5, '1210', '1211', '5701'),
+            ('Furniture & Fixtures', 'Desks, chairs, cabinets', 12.50, 8, '1220', '1211', '5702'),
+            ('Computers & IT', 'Laptops, desktops, servers, networking', 33.33, 3, '1230', '1211', '5703'),
+            ('Air Conditioning', 'AC units, central cooling', 12.50, 8, '1210', '1211', '5701'),
+            ('Electrical', 'Generators, UPS, electrical fittings', 12.50, 8, '1210', '1211', '5701'),
+            ('Vehicles', 'Company vehicles', 20.00, 5, '1210', '1211', '5701'),
+            ('Classroom Equipment', 'Whiteboards, projectors, sound systems', 20.00, 5, '1230', '1211', '5703'),
+        ]
+
+        cat_objs = {}
+        for cname, desc, rate, life, asset_acct, dep_acct, exp_acct in cat_data:
+            obj, _ = AssetCategory.objects.get_or_create(
+                category_name=cname,
+                defaults={
+                    'description': desc,
+                    'depreciation_rate': rate,
+                    'useful_life_years': life,
+                    'coa_asset_account': coa_map.get(asset_acct),
+                    'coa_depreciation_account': coa_map.get(dep_acct),
+                    'coa_expense_account': coa_map.get(exp_acct),
+                }
+            )
+            cat_objs[cname] = obj
+
+        # Assets — DHK Branch
+        asset_data = [
+            # (code, name, category, purchase_date, price, salvage, serial, model, mfr, condition, branch, location, employee_email)
+            ('AST-DHK-0001', 'HP LaserJet Pro MFP Printer', 'Computers & IT',
+             '2024-01-15', 45000, 5000, 'SN-HP-001', 'M428fdw', 'HP', 'Good', 'DHK',
+             'Admin Office - 1st Floor', 'karim@miepathways.com'),
+            ('AST-DHK-0002', 'Dell OptiPlex Desktop', 'Computers & IT',
+             '2024-01-15', 75000, 10000, 'SN-DELL-001', 'OptiPlex 7090', 'Dell', 'Good', 'DHK',
+             'Finance Room - 1st Floor', 'karim@miepathways.com'),
+            ('AST-DHK-0003', 'Dell OptiPlex Desktop', 'Computers & IT',
+             '2024-01-15', 75000, 10000, 'SN-DELL-002', 'OptiPlex 7090', 'Dell', 'Good', 'DHK',
+             'Fee Counter - 1st Floor', 'rafiq@miepathways.com'),
+            ('AST-DHK-0004', 'HP Pavilion Laptop', 'Computers & IT',
+             '2024-06-01', 95000, 15000, 'SN-HP-LAP-001', 'Pavilion 15', 'HP', 'Excellent', 'DHK',
+             'Director Office - 2nd Floor', 'amran@miepathways.com'),
+            ('AST-DHK-0005', 'Executive Office Desk (Teak)', 'Furniture & Fixtures',
+             '2023-06-01', 35000, 5000, None, 'Executive 160cm', 'Local', 'Good', 'DHK',
+             'Director Office - 2nd Floor', 'amran@miepathways.com'),
+            ('AST-DHK-0006', 'Ergonomic Office Chair', 'Furniture & Fixtures',
+             '2023-06-01', 18000, 2000, None, 'Ergo-Pro', 'Local', 'Good', 'DHK',
+             'Director Office - 2nd Floor', 'amran@miepathways.com'),
+            ('AST-DHK-0007', '4-Seat Student Desk Set', 'Furniture & Fixtures',
+             '2024-09-01', 12000, 1000, None, 'Student-4S', 'Local', 'Good', 'DHK',
+             'Classroom 1 - 1st Floor', None),
+            ('AST-DHK-0008', '4-Seat Student Desk Set', 'Furniture & Fixtures',
+             '2024-09-01', 12000, 1000, None, 'Student-4S', 'Local', 'Good', 'DHK',
+             'Classroom 2 - 1st Floor', None),
+            ('AST-DHK-0009', 'Epson Projector', 'Classroom Equipment',
+             '2024-09-01', 65000, 8000, 'SN-EP-001', 'EB-W52', 'Epson', 'Good', 'DHK',
+             'Classroom 1 - 1st Floor', None),
+            ('AST-DHK-0010', 'Samsung Split AC 2 Ton', 'Air Conditioning',
+             '2023-06-01', 85000, 10000, 'SN-SAM-AC-001', 'AR24TVHJ', 'Samsung', 'Good', 'DHK',
+             'Classroom 1 - 1st Floor', None),
+            ('AST-DHK-0011', 'Samsung Split AC 2 Ton', 'Air Conditioning',
+             '2023-06-01', 85000, 10000, 'SN-SAM-AC-002', 'AR24TVHJ', 'Samsung', 'Good', 'DHK',
+             'Classroom 2 - 1st Floor', None),
+            ('AST-DHK-0012', 'APC UPS 3000VA', 'Electrical',
+             '2024-01-15', 45000, 5000, 'SN-APC-001', 'Smart-UPS 3000', 'APC', 'Good', 'DHK',
+             'Server Room - 1st Floor', None),
+            ('AST-DHK-0013', 'Canon Scanner', 'Office Equipment',
+             '2024-03-01', 25000, 3000, 'SN-CAN-001', 'CanoScan LiDE', 'Canon', 'Good', 'DHK',
+             'Admin Office - 1st Floor', None),
+            ('AST-DHK-0014', 'Steel Filing Cabinet 4-Drawer', 'Furniture & Fixtures',
+             '2023-06-01', 15000, 1500, None, 'Steel-4D', 'Local', 'Good', 'DHK',
+             'Finance Room - 1st Floor', None),
+            ('AST-DHK-0015', 'Water Dispenser (Hot & Cold)', 'Office Equipment',
+             '2024-02-01', 22000, 2000, 'SN-WD-001', 'WD-3000', 'Midea', 'Good', 'DHK',
+             'Common Area - 1st Floor', None),
+
+            # CTG Branch
+            ('AST-CTG-0001', 'HP LaserJet Pro Printer', 'Computers & IT',
+             '2024-02-01', 42000, 5000, 'SN-HP-CTG-001', 'M404dn', 'HP', 'Good', 'CTG',
+             'Admin Office', 'sumon@miepathways.com'),
+            ('AST-CTG-0002', 'Dell OptiPlex Desktop', 'Computers & IT',
+             '2024-02-01', 75000, 10000, 'SN-DELL-CTG-001', 'OptiPlex 7090', 'Dell', 'Good', 'CTG',
+             'Finance Room', 'sumon@miepathways.com'),
+            ('AST-CTG-0003', 'Lenovo Laptop', 'Computers & IT',
+             '2024-06-01', 88000, 12000, 'SN-LEN-CTG-001', 'ThinkPad E15', 'Lenovo', 'Good', 'CTG',
+             'Manager Office', 'zahir@miepathways.com'),
+            ('AST-CTG-0004', 'Epson Projector', 'Classroom Equipment',
+             '2024-09-01', 65000, 8000, 'SN-EP-CTG-001', 'EB-W52', 'Epson', 'Good', 'CTG',
+             'Classroom', None),
+            ('AST-CTG-0005', '4-Seat Student Desk Set', 'Furniture & Fixtures',
+             '2024-09-01', 12000, 1000, None, 'Student-4S', 'Local', 'Good', 'CTG',
+             'Classroom', None),
+            ('AST-CTG-0006', 'Samsung Split AC 1.5 Ton', 'Air Conditioning',
+             '2024-02-01', 65000, 8000, 'SN-SAM-CTG-AC-001', 'AR18', 'Samsung', 'Good', 'CTG',
+             'Classroom', None),
+            ('AST-CTG-0007', 'APC UPS 2000VA', 'Electrical',
+             '2024-02-01', 35000, 4000, 'SN-APC-CTG-001', 'Smart-UPS 2000', 'APC', 'Good', 'CTG',
+             'Server Area', None),
+            ('AST-CTG-0008', 'Steel Filing Cabinet 4-Drawer', 'Furniture & Fixtures',
+             '2024-02-01', 15000, 1500, None, 'Steel-4D', 'Local', 'Good', 'CTG',
+             'Admin Office', None),
+        ]
+
+        asset_objs = {}
+        from apps.hrm.models import Employee
+        for (code, name, cat, pdt, price, salvage, serial, model, mfr,
+             condition, branch_code, location, emp_email) in asset_data:
+
+            branch_obj = dhk if branch_code == 'DHK' else ctg
+            assigned_emp = None
+            if emp_email:
+                try:
+                    user = User.objects.get(email=emp_email)
+                    assigned_emp = Employee.objects.filter(user=user).first()
+                except User.DoesNotExist:
+                    pass
+
+            obj, _ = Asset.objects.get_or_create(
+                asset_code=code,
+                defaults={
+                    'asset_name': name,
+                    'category': cat_objs[cat],
+                    'purchase_date': pdt,
+                    'purchase_price': price,
+                    'salvage_value': salvage,
+                    'current_value': price,  # starts at full value
+                    'accumulated_depreciation': 0,
+                    'serial_number': serial,
+                    'model_number': model,
+                    'manufacturer': mfr,
+                    'condition': condition,
+                    'status': 'Active',
+                    'assigned_employee': assigned_emp,
+                    'assigned_branch': branch_obj,
+                    'location': location,
+                    'branch': branch_obj,
+                    'created_by': admin,
+                }
+            )
+            asset_objs[code] = obj
+
+        # Some maintenance records
+        maintenance_data = [
+            ('AST-DHK-0001', '2025-06-01', 'Preventive', 'Toner replacement and cleaning', 3500, 'HP Service Center'),
+            ('AST-DHK-0010', '2025-04-15', 'Preventive', 'AC gas refill and filter cleaning', 5000, 'Samsung Service'),
+            ('AST-DHK-0011', '2025-04-15', 'Preventive', 'AC gas refill and filter cleaning', 5000, 'Samsung Service'),
+            ('AST-DHK-0012', '2025-08-01', 'Preventive', 'Battery health check', 2000, 'APC Service'),
+            ('AST-CTG-0006', '2025-05-01', 'Corrective', 'Compressor repair', 12000, 'Samsung Service'),
+            ('AST-DHK-0009', '2026-01-10', 'Preventive', 'Lamp replacement', 8000, 'Epson Service'),
+        ]
+        for acode, dt, mtype, desc, cost, vendor in maintenance_data:
+            AssetMaintenance.objects.create(
+                asset=asset_objs[acode],
+                maintenance_date=dt,
+                maintenance_type=mtype,
+                description=desc,
+                cost=cost,
+                vendor=vendor,
+                status='Completed',
+                performed_by=admin,
+                branch=asset_objs[acode].branch,
+            )
+
+        # Asset assignments
+        for code, asset in asset_objs.items():
+            if asset.assigned_employee:
+                AssetAssignment.objects.create(
+                    asset=asset,
+                    employee=asset.assigned_employee,
+                    assigned_date=asset.purchase_date,
+                    condition_at_assignment='Excellent',
+                    assigned_by=admin,
+                    status='Active',
+                    branch=asset.branch,
+                )
+
+        # Calculate some historical depreciation
+        for code, asset in asset_objs.items():
+            if asset.depreciation_method == 'None':
+                continue
+            purchase = float(asset.purchase_price)
+            salvage = float(asset.salvage_value)
+            useful_months = (asset.category.useful_life_years or 5) * 12
+            monthly_dep = (purchase - salvage) / useful_months
+            months_elapsed = max(1, (date.today() - asset.purchase_date).days // 30)
+
+            running_value = purchase
+            running_acc = 0
+            for m in range(1, min(months_elapsed + 1, 25)):  # max 24 months of history
+                dep_amt = min(monthly_dep, running_value - salvage)
+                if dep_amt <= 0:
+                    break
+                running_value -= dep_amt
+                running_acc += dep_amt
+
+                dep_date = asset.purchase_date + timedelta(days=30 * m)
+                if dep_date > date.today():
+                    break
+
+                import calendar as cal
+                month_label = f"{cal.month_name[dep_date.month]} {dep_date.year}"
+
+                AssetDepreciation.objects.get_or_create(
+                    asset=asset, period_label=month_label,
+                    defaults={
+                        'depreciation_date': dep_date,
+                        'opening_value': round(running_value + dep_amt, 2),
+                        'depreciation_amount': round(dep_amt, 2),
+                        'closing_value': round(running_value, 2),
+                        'accumulated_total': round(running_acc, 2),
+                        'status': 'Posted',
+                        'branch': asset.branch,
+                    }
+                )
+
+            # Update current values
+            asset.current_value = round(running_value, 2)
+            asset.accumulated_depreciation = round(running_acc, 2)
+            asset.save(update_fields=[
+                'current_value', 'accumulated_depreciation', 'updated_at'
+            ])
+
+        self.stdout.write(self.style.SUCCESS(
+            f'  {len(cat_objs)} categories, {len(asset_objs)} assets, '
+            f'{len(maintenance_data)} maintenance records'
+        ))
 
         # ─────────────────────────────────────────────────────
         # DONE
