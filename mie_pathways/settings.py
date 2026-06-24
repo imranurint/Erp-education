@@ -166,6 +166,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.accounting.tasks.generate_monthly_snapshot',
         'schedule': crontab(hour=2, minute=0, day_of_month=1),  # 1st of month 2 AM
     },
+    'calculate-monthly-depreciation': {
+        'task': 'apps.core.tasks.calculate_monthly_depreciation',
+        'schedule': crontab(hour=3, minute=0, day_of_month=1),  # 1st of month 3 AM
+    },
 }
 
 # ── Email Configuration ───────────────────────────────────

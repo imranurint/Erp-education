@@ -204,3 +204,261 @@ class AuditLog(models.Model):
     class Meta:
         db_table = 'audit_log'
         ordering = ['-created_at']
+
+
+
+
+
+
+
+
+
+###ASSET MODEL
+
+class AssetCategory(models.Model):
+    category_id = models.AutoField(primary_key=True)
+    category_name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    depreciation_rate = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0,
+        help_text='Annual depreciation percentage (e.g. 20.00 = 20%)'
+    )
+    useful_life_years = models.IntegerField(
+        default=5, help_text='Useful life in years'
+    )
+    coa_asset_account = models.ForeignKey(
+        'accounting.ChartOfAccount', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='asset_category_asset',
+        help_text='Asset account in COA (e.g. 1210 Office Equipment)'
+    )
+    coa_depreciation_account = models.ForeignKey(
+        'accounting.ChartOfAccount', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='asset_category_depreciation',
+        help_text='Accumulated depreciation account (e.g. 1211)'
+    )
+    coa_expense_account = models.ForeignKey(
+        'accounting.ChartOfAccount', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='asset_category_expense',
+        help_text='Depreciation expense account (e.g. 5701)'
+    )
+    status = models.CharField(max_length=8, default='Active')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'asset_categories'
+        ordering = ['category_name']
+        verbose_name_plural = 'Asset Categories'
+
+    def __str__(self):
+        return self.category_name
+
+
+class Asset(models.Model):
+    asset_id = models.AutoField(primary_key=True)
+    asset_code = models.CharField(max_length=30, unique=True)
+    asset_name = models.CharField(max_length=200)
+    category = models.ForeignKey(
+        AssetCategory, on_delete=models.CASCADE
+    )
+    description = models.TextField(blank=True, null=True)
+    purchase_date = models.DateField()
+    purchase_price = models.DecimalField(max_digits=15, decimal_places=2)
+    salvage_value = models.DecimalField(
+        max_digits=15, decimal_places=2, default=0,
+        help_text='Estimated value at end of useful life'
+    )
+    current_value = models.DecimalField(
+        max_digits=15, decimal_places=2, default=0,
+        help_text='Current book value (purchase - accumulated depreciation)'
+    )
+    accumulated_depreciation = models.DecimalField(
+        max_digits=15, decimal_places=2, default=0
+    )
+    depreciation_method = models.CharField(
+        max_length=20, default='Straight Line',
+        choices=[
+            ('Straight Line', 'Straight Line'),
+            ('Declining Balance', 'Declining Balance'),
+            ('None', 'No Depreciation'),
+        ]
+    )
+    serial_number = models.CharField(max_length=100, blank=True, null=True)
+    model_number = models.CharField(max_length=100, blank=True, null=True)
+    manufacturer = models.CharField(max_length=100, blank=True, null=True)
+    warranty_expiry = models.DateField(null=True, blank=True)
+    purchase_voucher = models.ForeignKey(
+        'accounting.Voucher', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='purchased_assets'
+    )
+    assigned_employee = models.ForeignKey(
+        'hrm.Employee', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='assigned_assets'
+    )
+    assigned_branch = models.ForeignKey(
+        'core.Branch', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='assets'
+    )
+    location = models.CharField(
+        max_length=200, blank=True, null=True,
+        help_text='Physical location (Room 201, 2nd Floor, etc.)'
+    )
+    condition = models.CharField(
+        max_length=15, default='Good',
+        choices=[
+            ('Excellent', 'Excellent'),
+            ('Good', 'Good'),
+            ('Fair', 'Fair'),
+            ('Poor', 'Poor'),
+            ('Damaged', 'Damaged'),
+        ]
+    )
+    status = models.CharField(
+        max_length=55, default='Active',
+        choices=[
+            ('Active', 'Active'),
+            ('Under Maintenance', 'Under Maintenance'),
+            ('Disposed', 'Disposed'),
+            ('Lost', 'Lost'),
+            ('Retired', 'Retired'),
+        ]
+    )
+    disposal_date = models.DateField(null=True, blank=True)
+    disposal_amount = models.DecimalField(
+        max_digits=15, decimal_places=2, null=True, blank=True
+    )
+    notes = models.TextField(blank=True, null=True)
+    photo_path = models.CharField(max_length=500, blank=True, null=True)
+    branch = models.ForeignKey(
+        Branch, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    created_by = models.ForeignKey(
+        'core.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='created_assets'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'assets'
+        ordering = ['asset_code']
+
+    def __str__(self):
+        return f"{self.asset_code} - {self.asset_name}"
+
+
+class AssetDepreciation(models.Model):
+    depreciation_id = models.AutoField(primary_key=True)
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name='depreciation_records')
+    depreciation_date = models.DateField()
+    period_label = models.CharField(
+        max_length=20, help_text='e.g. "June 2026" or "2025-2026"'
+    )
+    opening_value = models.DecimalField(max_digits=15, decimal_places=2)
+    depreciation_amount = models.DecimalField(max_digits=15, decimal_places=2)
+    closing_value = models.DecimalField(max_digits=15, decimal_places=2)
+    accumulated_total = models.DecimalField(max_digits=15, decimal_places=2)
+    voucher = models.ForeignKey(
+        'accounting.Voucher', on_delete=models.SET_NULL,
+        null=True, blank=True
+    )
+    status = models.CharField(
+        max_length=50, default='Calculated',
+        choices=[
+            ('Calculated', 'Calculated'),
+            ('Posted', 'Posted'),
+            ('Reversed', 'Reversed'),
+        ]
+    )
+    branch = models.ForeignKey(
+        Branch, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'asset_depreciation'
+        ordering = ['-depreciation_date']
+        unique_together = [('asset', 'period_label')]
+
+
+class AssetMaintenance(models.Model):
+    maintenance_id = models.AutoField(primary_key=True)
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name='maintenance_records')
+    maintenance_date = models.DateField()
+    maintenance_type = models.CharField(
+        max_length=15, default='Preventive',
+        choices=[
+            ('Preventive', 'Preventive'),
+            ('Corrective', 'Corrective'),
+            ('Emergency', 'Emergency'),
+            ('Upgrade', 'Upgrade'),
+        ]
+    )
+    description = models.TextField()
+    cost = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    vendor = models.CharField(max_length=200, blank=True, null=True)
+    next_maintenance_date = models.DateField(null=True, blank=True)
+    voucher = models.ForeignKey(
+        'accounting.Voucher', on_delete=models.SET_NULL,
+        null=True, blank=True
+    )
+    status = models.CharField(
+        max_length=52, default='Completed',
+        choices=[
+            ('Scheduled', 'Scheduled'),
+            ('In Progress', 'In Progress'),
+            ('Completed', 'Completed'),
+            ('Cancelled', 'Cancelled'),
+        ]
+    )
+    performed_by = models.ForeignKey(
+        'core.User', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='asset_maintenance_done'
+    )
+    branch = models.ForeignKey(
+        Branch, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'asset_maintenance'
+        ordering = ['-maintenance_date']
+
+
+class AssetAssignment(models.Model):
+    assignment_id = models.AutoField(primary_key=True)
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name='assignment_history')
+    employee = models.ForeignKey(
+        'hrm.Employee', on_delete=models.CASCADE,
+        related_name='asset_assignments'
+    )
+    assigned_date = models.DateField()
+    return_date = models.DateField(null=True, blank=True)
+    condition_at_assignment = models.CharField(
+        max_length=15, default='Good',
+        choices=[
+            ('Excellent', 'Excellent'), ('Good', 'Good'),
+            ('Fair', 'Fair'), ('Poor', 'Poor'),
+        ]
+    )
+    condition_at_return = models.CharField(max_length=15, blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
+    assigned_by = models.ForeignKey(
+        'core.User', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='asset_assignments_made'
+    )
+    status = models.CharField(
+        max_length=50, default='Active',
+        choices=[
+            ('Active', 'Active'),
+            ('Returned', 'Returned'),
+            ('Transferred', 'Transferred'),
+        ]
+    )
+    branch = models.ForeignKey(
+        Branch, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'asset_assignments'
+        ordering = ['-assigned_date']

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import (
-    Branch, User, UserSession, ExchangeRate,
+    Asset, AssetAssignment, AssetCategory, AssetDepreciation, AssetMaintenance, Branch, User, UserSession, ExchangeRate,
     Setting, Notification, AuditLog
 )
 
@@ -79,3 +79,101 @@ class AuditLogSerializer(serializers.ModelSerializer):
         model = AuditLog
         fields = '__all__'
         read_only_fields = ['log_id', 'created_at']
+
+
+
+### ASSETS
+
+class AssetCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AssetCategory
+        fields = '__all__'
+
+
+class AssetListSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(
+        source='category.category_name', read_only=True
+    )
+    assigned_to = serializers.CharField(
+        source='assigned_employee.user.name', read_only=True, default=None
+    )
+    branch_name = serializers.CharField(
+        source='assigned_branch.branch_name', read_only=True, default=None
+    )
+
+    class Meta:
+        model = Asset
+        fields = [
+            'asset_id', 'asset_code', 'asset_name', 'category',
+            'category_name', 'purchase_date', 'purchase_price',
+            'current_value', 'accumulated_depreciation',
+            'condition', 'status', 'assigned_to', 'assigned_branch',
+            'branch_name', 'location',
+        ]
+
+
+class AssetDetailSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(
+        source='category.category_name', read_only=True
+    )
+    assigned_employee_name = serializers.CharField(
+        source='assigned_employee.user.name', read_only=True, default=None
+    )
+    assigned_branch_name = serializers.CharField(
+        source='assigned_branch.branch_name', read_only=True, default=None
+    )
+    branch_name = serializers.CharField(
+        source='branch.branch_name', read_only=True, default=None
+    )
+    depreciation_history = serializers.SerializerMethodField()
+    maintenance_history = serializers.SerializerMethodField()
+    assignment_history = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Asset
+        fields = '__all__'
+
+    def get_depreciation_history(self, obj):
+        records = AssetDepreciation.objects.filter(asset=obj).order_by('-depreciation_date')[:12]
+        return AssetDepreciationSerializer(records, many=True).data
+
+    def get_maintenance_history(self, obj):
+        records = AssetMaintenance.objects.filter(asset=obj).order_by('-maintenance_date')[:12]
+        return AssetMaintenanceSerializer(records, many=True).data
+
+    def get_assignment_history(self, obj):
+        records = AssetAssignment.objects.filter(asset=obj).order_by('-assigned_date')[:12]
+        return AssetAssignmentSerializer(records, many=True).data
+
+
+class AssetDepreciationSerializer(serializers.ModelSerializer):
+    asset_name = serializers.CharField(source='asset.asset_name', read_only=True)
+    asset_code = serializers.CharField(source='asset.asset_code', read_only=True)
+
+    class Meta:
+        model = AssetDepreciation
+        fields = '__all__'
+
+
+class AssetMaintenanceSerializer(serializers.ModelSerializer):
+    asset_name = serializers.CharField(source='asset.asset_name', read_only=True)
+    asset_code = serializers.CharField(source='asset.asset_code', read_only=True)
+
+    class Meta:
+        model = AssetMaintenance
+        fields = '__all__'
+
+
+class AssetAssignmentSerializer(serializers.ModelSerializer):
+    asset_name = serializers.CharField(source='asset.asset_name', read_only=True)
+    asset_code = serializers.CharField(source='asset.asset_code', read_only=True)
+    employee_name = serializers.CharField(
+        source='employee.user.name', read_only=True
+    )
+    employee_code = serializers.CharField(
+        source='employee.employee_code', read_only=True
+    )
+
+    class Meta:
+        model = AssetAssignment
+        fields = '__all__'
