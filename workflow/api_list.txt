@@ -124,4 +124,22 @@ SCHEDULED (Celery Beat — automatic):
   Every 5 minutes    → process_email_queue
   1st of month 2 AM  → generate_monthly_snapshot
 
-TOTAL: 179 endpoints + 4 scheduled tasks
+
+ASSET MANAGEMENT:
+  CRUD   /api/v1/asset-categories/
+  CRUD   /api/v1/assets/
+  GET    /api/v1/assets/{id}/depreciation/     ← depreciation history
+  GET    /api/v1/assets/{id}/maintenance/      ← maintenance history
+  GET    /api/v1/assets/{id}/assignments/      ← assignment history
+  POST   /api/v1/assets/{id}/assign/           ← assign to employee
+  POST   /api/v1/assets/{id}/return_asset/     ← return from employee
+  POST   /api/v1/assets/{id}/dispose/          ← dispose asset
+  GET    /api/v1/assets/summary/               ← aggregate report data
+  CRUD   /api/v1/asset-maintenance/
+  GET    /api/v1/asset-assignments/            ← read-only history
+
+SCHEDULED:
+  1st of month 3 AM  → calculate_monthly_depreciation
+
+
+TOTAL: 191 endpoints + 5 scheduled tasks
